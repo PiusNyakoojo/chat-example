@@ -1,0 +1,115 @@
+<!doctype html>
+<html>
+<head>
+    <title>Socket.IO chat</title>
+    <style>
+        * {margin: 0; padding: 0; box-sizing: border-box;}
+        body { font: 13px Helventica, Arial; }
+        #stats { z-index: 1; background: rgb(130, 224, 255); position: fixed; width: 100px; height: 100px; top: 10px; right: 20px;}
+        #population { position: relative; top: 20px;}
+        #usrname_form { background: #000; padding: 3px; position: fixed; top: 40%; left: 40%; }
+        #usrname_form input { border: 0; padding: 10px; margin-right: .5%; }
+        #usrname_form button { width: 30%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+        #msg_form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%;}
+        #msg_form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+        #chat { display: none;}
+        #msg_form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+        #chat-area { position: fixed; width: 100%; height: 90%; overflow-y: scroll; }
+        #messages { list-style-type: none; margin: 0; padding: 0;}
+        #messages li { padding: 5px 10px; }
+        #messages li:nth-child(odd) { background: #eee; }
+    </style>
+</head>
+
+<body>
+
+<div id="stats" align="center">
+    <h1 id="population"></h1>
+</div>
+
+<form id="usrname_form" action="">
+    <input id="usrname" autocomplete="off" placeholder="Username" /><button>Enter Chat</button>
+</form>
+
+<div id="chat">
+    <div id="chat-area">
+        <ul id="messages"></ul>
+    </div>
+
+    <form id="msg_form" action="">
+        <input id="m" autocomplete="off"/><button>Send</button>
+    </form>
+</div>
+
+<script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+<script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+<script>
+    var socket = io();
+    var chat_area = document.getElementById("chat-area");
+    var username;
+    var username_color;
+    var message;
+
+    $('#usrname_form').submit(function(){
+
+        username = $('#usrname').val();
+
+        if (username && !(/^[a-zA-Z0-9- ]*$/.test(username) == false)){
+            username_color = getRandomColor();
+            showChat();
+        }
+
+        return false;
+    });
+
+    function getRandomColor() {
+        var letters = '0123456789ABCDEF'.split('');
+        var color = '#';
+        for (var i = 0; i < 6; i++ ) {
+            color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
+    }
+
+    function showChat(){
+        $('#usrname_form').hide();
+        $('#chat').show();
+    }
+
+    $('#msg_form').submit(function() {
+        var data = {
+            u_name: username,
+            u_color: username_color,
+            u_message: $('#m').val()
+        };
+
+        socket.emit('update-chat', data);
+        $('#m').val('');
+        return false;
+    });
+
+
+    socket.on('update-chat', function(data){
+       var u_name = data.u_name;
+        var u_color = data.u_color;
+        var u_msg = data.u_message;
+
+        var temp = document.createElement('li');
+        temp.innerHTML = u_name.bold().fontcolor(u_color) + ": " + u_msg;
+        $('#messages').append(temp);
+        chat_area.scrollTop = chat_area.scrollHeight;
+    });
+
+    socket.on('update-population', function(population){
+
+        if (population == 1){
+            document.getElementById('population').innerHTML = population + " User (You)";
+        }
+        else if (population > 1){
+            document.getElementById('population').innerHTML = population + " Users";
+        }
+    });
+
+</script>
+</body>
+</html>
